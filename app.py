@@ -6,6 +6,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 import os
+import requests
+from time import sleep
 
 # Set page config
 st.set_page_config(
@@ -50,6 +52,21 @@ def load_data():
     
     return new_df, similarity
 
+def get_anime_image(anime_name):
+    """Fetch anime image URL from Jikan API"""
+    try:
+        url = f"https://api.jikan.moe/v4/anime?q={anime_name}&limit=1"
+        response = requests.get(url)
+        response.raise_for_status()  # Check for HTTP errors
+        data = response.json()
+        
+        if data['data']:
+            return data['data'][0]['images']['jpg']['image_url']
+        return None
+    except Exception as e:
+        st.warning(f"Couldn't fetch image for {anime_name}: {str(e)}")
+        return None
+
 # Load data
 new_df, similarity = load_data()
 anime_names = sorted(new_df['name'].tolist())
@@ -75,20 +92,31 @@ if selected_anime:
         # Get similarity scores
         distances = similarity[anime_index]
         
-        # Get top 6 recommendations
+        # Get top 5 recommendations (excluding the anime itself)
         anime_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
         
         st.success(f"Top recommendations for **{selected_anime}**:")
         
         # Display recommendations in columns
         cols = st.columns(5)
-        for idx, (i, _) in enumerate(anime_list):
+        for idx, (i, score) in enumerate(anime_list):
             with cols[idx]:
-                st.subheader(new_df.iloc[i]['name'])
-                st.caption(f"Similarity score: {similarity[anime_index][i]:.2f}")
+                anime_name = new_df.iloc[i]['name']
+                st.subheader(anime_name)
+                st.caption(f"Similarity score: {score:.2f}")
+                
+                # Get and display anime image
+                image_url = get_anime_image(anime_name)
+                if image_url:
+                    st.image(image_url, caption=anime_name, use_column_width=True)
+                    sleep(1)  # Respect API rate limits (3 requests/second)
+                else:
+                    st.warning("Image not available")
                 
     except IndexError:
         st.error(f"❌ '{selected_anime}' not found in database. Please try another title.")
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
 
 # Add some info/instructions
 st.divider()
@@ -97,6 +125,7 @@ st.markdown("""
 1. The system analyzes anime genres, types, and episode counts
 2. Uses cosine similarity to find shows with similar characteristics
 3. Recommends the top 5 most similar anime titles
+4. Fetches images from MyAnimeList's API
 """)
 
 # Optional: Show raw data

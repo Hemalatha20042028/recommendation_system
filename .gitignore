@@ -1,0 +1,15 @@
+# Data files
+anime.csv
+animes.pkl
+similarity.pkl
+
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# VS Code
+.vscode/
