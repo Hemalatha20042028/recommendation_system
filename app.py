@@ -9,26 +9,17 @@ import os
 import requests
 from time import sleep
 
+# 2. Add this right after your imports (top of file):
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = False
+
 # Set page config - MODIFIED to add theme="auto"
 st.set_page_config(
     page_title="Anime Recommender",
     page_icon="🎬",
-    layout="wide",
-    theme="auto"  # Added this line for theme support
+    layout="wide",  # Added this line for theme support
 )
 
-# NEW THEME DETECTION CODE - Add this right after page config
-def get_theme():
-    """Detect current theme using native Streamlit methods"""
-    try:
-        # For Streamlit >= 1.16
-        from streamlit.runtime.scriptrunner import get_script_run_ctx
-        ctx = get_script_run_ctx()
-        if ctx and hasattr(ctx, "theme"):
-            return ctx.theme.config.get("base", "light")
-    except:
-        pass
-    return "light"
 
 @st.cache_resource
 def load_data():
@@ -91,28 +82,26 @@ st.markdown("Discover new anime similar to your favorites!")
 
 # NEW CODE - Add theme toggle to sidebar
 with st.sidebar:
-    current_theme = get_theme()
-    dark_mode = st.toggle("🌙 Dark Mode", 
-                         value=(current_theme == "dark"),
-                         key="dark_mode_toggle")
-
+    st.session_state.dark_mode = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode)
 # Apply custom CSS based on theme - NEW CODE
-if dark_mode:
+# In your dark mode CSS (replace the existing style block)
+if st.session_state.dark_mode:
     st.markdown("""
     <style>
         /* Dark background */
-        .stApp {
-            background-color: #0E1117;
+        .stApp { background-color: #0E1117; }
+        
+        /* Text colors */
+        h1, h2, h3, h4, h5, h6, p, .st-bw, .st-cm { 
+            color: white !important; 
         }
-        /* Text color */
-        .st-bw, .st-cm, h1, h2, h3, h4, h5, h6, p {
-            color: white !important;
-        }
+        
         /* Cards and containers */
-        .st-bb, .st-at {
+        .st-bb, .st-at { 
             background-color: #1E1E1E !important;
             border-color: #333 !important;
         }
+        
         /* Input fields */
         .st-bq, .st-cf {
             background-color: #2D2D2D !important;
@@ -120,7 +109,6 @@ if dark_mode:
         }
     </style>
     """, unsafe_allow_html=True)
-
 # Search input with typeahead
 selected_anime = st.selectbox(
     "Search for an anime:",
